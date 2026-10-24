@@ -17,6 +17,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - backend
     # ---------------- Administration de la base ----------------
   pgadmin:
     image: dpage/pgadmin4:9
@@ -35,6 +37,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - backend
     # ---------------- CMS headless (API) ----------------
   strapi:
     build: ./backend
@@ -68,7 +72,28 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
+    networks:
+      - backend
+      - frontend
+    # ---------------- Front-end ----------------
+  frontend:
+    build: ./frontend
+    image: tp2/frontend:latest
+    restart: unless-stopped
+    environment:
+      # Appel serveur à serveur : on utilise le nom du service, pas "localhost"
+      STRAPI_URL: http://strapi:1337
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      strapi:
+        condition: service_healthy
+    networks:
+      - frontend
 volumes:
   pgdata:
   pgadmin-data:
   strapi-uploads:
+networks:
+  backend:
+  frontend:
